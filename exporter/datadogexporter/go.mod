@@ -34,7 +34,7 @@ require (
 	github.com/DataDog/opentelemetry-mapping-go/pkg/quantile v0.17.0
 	github.com/DataDog/sketches-go v1.4.6
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.24.0
-	github.com/aws/aws-sdk-go v1.53.11
+	github.com/aws/aws-sdk-go v1.54.14
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/google/go-cmp v0.6.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/datadogconnector v0.104.0
