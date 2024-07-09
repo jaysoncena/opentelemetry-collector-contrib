@@ -7,7 +7,8 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/exp/metrics v0.104.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/sharedcomponent v0.104.0
 	github.com/stretchr/testify v1.9.0
-	github.com/vmihailenco/msgpack/v4 v4.3.13
+	github.com/vmihailenco/msgpack/v4 v4.3.12
+	github.com/vmihailenco/msgpack/v5 v5.4.1
 	go.opentelemetry.io/collector/component v0.104.1-0.20240709093154-e7ce1d50fb5e
 	go.opentelemetry.io/collector/config/confighttp v0.104.1-0.20240709093154-e7ce1d50fb5e
 	go.opentelemetry.io/collector/confmap v0.104.1-0.20240709093154-e7ce1d50fb5e
