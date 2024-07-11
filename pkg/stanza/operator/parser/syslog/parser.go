@@ -18,6 +18,8 @@ import (
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/entry"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/operator/helper"
+
+	"github.com/valyala/bytebufferpool"
 )
 
 var priRegex = regexp.MustCompile(`\<\d{1,3}\>`)
@@ -45,8 +47,9 @@ func (p *Parser) Process(ctx context.Context, entry *entry.Entry) error {
 		if err != nil {
 			return err
 		}
+		defer bytebufferpool.Put(bytes)
 
-		if p.shouldSkipPriorityValues(bytes) {
+		if p.shouldSkipPriorityValues(bytes.B) {
 			return p.ParserOperator.ProcessWithCallback(ctx, entry, p.parse, postprocessWithoutPriHeader)
 		}
 	}
@@ -60,18 +63,19 @@ func (p *Parser) parse(value any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer bytebufferpool.Put(bytes)
 
 	pFunc, err := p.buildParseFunc()
 	if err != nil {
 		return nil, err
 	}
 
-	slog, err := pFunc(bytes)
+	slog, err := pFunc(bytes.B)
 	if err != nil {
 		return nil, err
 	}
 
-	skipPriHeaderValues := p.shouldSkipPriorityValues(bytes)
+	skipPriHeaderValues := p.shouldSkipPriorityValues(bytes.B)
 
 	switch message := slog.(type) {
 	case *rfc3164.SyslogMessage:
@@ -224,10 +228,15 @@ func convertMap(data map[string]map[string]string) map[string]any {
 	return ret
 }
 
-func toBytes(value any) ([]byte, error) {
+func toBytes(value any) (*bytebufferpool.ByteBuffer, error) {
+	bb := bytebufferpool.Get()
 	switch v := value.(type) {
 	case string:
-		return []byte(v), nil
+		_, err := bb.WriteString(v)
+		if err != nil {
+			return nil, err
+		}
+		return bb, nil
 	default:
 		return nil, fmt.Errorf("unable to convert type '%T' to bytes", value)
 	}
