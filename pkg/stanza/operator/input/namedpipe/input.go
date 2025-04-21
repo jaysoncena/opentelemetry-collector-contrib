@@ -70,6 +70,20 @@ func (i *Input) Start(_ operator.Persister) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	i.cancel = cancel
 
+	// channel to notify if the pipe has a buffered data
+	ch := make(chan struct{}, 1)
+
+	// check if there's pending data in named pipe for reading before running inotify/watcher
+	n, err := unix.IoctlGetInt(int(i.pipe.Fd()), unix.TIOCINQ)
+	if err != nil {
+		i.Logger().Error("ioctl FIONREAD/TIOCINQ failed", zap.Error(err))
+	}
+
+	if n > 0 {
+		i.Logger().Info("found data buffered to named pipe", zap.Int("bytes", n))
+		ch <- struct{}{}
+	}
+
 	i.wg.Add(2)
 	go func() {
 		defer i.wg.Done()
@@ -80,11 +94,17 @@ func (i *Input) Start(_ operator.Persister) error {
 
 	go func() {
 		defer i.wg.Done()
+
 		for {
 			select {
 			case <-watcher.C:
 				if err := i.process(ctx, pipe); err != nil {
-					i.Logger().Error("failed to process named pipe", zap.Error(err))
+					i.Logger().Error("failed to process named pipe after inotify", zap.Error(err))
+				}
+			case <-ch:
+				close(ch)
+				if err := i.process(ctx, pipe); err != nil {
+					i.Logger().Error("failed to process named pipe after FIONREAD/TIOCINQ", zap.Error(err))
 				}
 			case <-ctx.Done():
 				return
