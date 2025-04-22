@@ -93,16 +93,17 @@ func (i *Input) Start(_ operator.Persister) error {
 	}()
 
 	go func() {
+		defer close(ch)
 		defer i.wg.Done()
-
 		for {
 			select {
 			case <-watcher.C:
+				i.Logger().Info("inotify detected writes to named pipe")
 				if err := i.process(ctx, pipe); err != nil {
 					i.Logger().Error("failed to process named pipe after inotify", zap.Error(err))
 				}
 			case <-ch:
-				close(ch)
+				i.Logger().Info("buffered data detected on the named pipe")
 				if err := i.process(ctx, pipe); err != nil {
 					i.Logger().Error("failed to process named pipe after FIONREAD/TIOCINQ", zap.Error(err))
 				}
