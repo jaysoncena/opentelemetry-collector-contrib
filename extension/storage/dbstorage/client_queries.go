@@ -14,18 +14,23 @@ const (
 	// Will NOT work on all most popular SQL DB's, see DB-specific override queries below
 	// Tested to be working at least on PostgreSQL and SQLite
 	// Not all queries are working on MSSQL, MySQL/MqriaDB, Oracle, etc.
-	sqlGenericCreateTableQuery = "CREATE TABLE IF NOT EXISTS %s (key TEXT PRIMARY KEY, value TEXT)"
-	sqlGenericGetQuery         = "SELECT value FROM %s WHERE key=$1"
-	sqlGenericMultiGetQuery    = "SELECT key, value FROM %s WHERE key IN ($1)"
-	sqlGenericInsertQuery      = "INSERT INTO %s(key, value) VALUES($1, $2) ON CONFLICT(key) DO UPDATE SET value=excluded.value"
-	sqlGenericMultiInsertQuery = "INSERT INTO %s(key, value) VALUES $1 ON CONFLICT(key) DO UPDATE SET value=excluded.value"
-	sqlGenericDeleteQuery      = "DELETE FROM %s WHERE key=$1"
-	sqlGenericMultiDeleteQuery = "DELETE FROM %s WHERE key IN ($1)"
+	// The table name (%s) is derived from the component ID and can contain
+	// characters that are not valid in a bare SQL identifier (e.g. "/" and "-"
+	// in "otlp/nginx/ams-a"), so it is wrapped in double quotes. Double quotes
+	// are the ANSI SQL identifier delimiter and are honoured by both SQLite and
+	// PostgreSQL.
+	sqlGenericCreateTableQuery = `CREATE TABLE IF NOT EXISTS "%s" (key TEXT PRIMARY KEY, value TEXT)`
+	sqlGenericGetQuery         = `SELECT value FROM "%s" WHERE key=$1`
+	sqlGenericMultiGetQuery    = `SELECT key, value FROM "%s" WHERE key IN ($1)`
+	sqlGenericInsertQuery      = `INSERT INTO "%s"(key, value) VALUES($1, $2) ON CONFLICT(key) DO UPDATE SET value=excluded.value`
+	sqlGenericMultiInsertQuery = `INSERT INTO "%s"(key, value) VALUES $1 ON CONFLICT(key) DO UPDATE SET value=excluded.value`
+	sqlGenericDeleteQuery      = `DELETE FROM "%s" WHERE key=$1`
+	sqlGenericMultiDeleteQuery = `DELETE FROM "%s" WHERE key IN ($1)`
 	// DB-specific queries
 	// SQLite
-	sqlSQLiteCreateTableQuery = "CREATE TABLE IF NOT EXISTS %s (key TEXT PRIMARY KEY, value BLOB)"
+	sqlSQLiteCreateTableQuery = `CREATE TABLE IF NOT EXISTS "%s" (key TEXT PRIMARY KEY, value BLOB)`
 	// PostgreSQL
-	sqlPostgreSQLCreateTableQuery = "CREATE TABLE IF NOT EXISTS %s (key TEXT PRIMARY KEY, value bytea)"
+	sqlPostgreSQLCreateTableQuery = `CREATE TABLE IF NOT EXISTS "%s" (key TEXT PRIMARY KEY, value bytea)`
 	// Other to be added later...
 
 	// Max amount of similar queries that can be aggregated into single query, driver-specific

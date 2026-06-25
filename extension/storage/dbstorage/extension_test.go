@@ -37,6 +37,38 @@ func TestExtensionIntegrityWithSqlite(t *testing.T) {
 	testExtensionIntegrity(t, se)
 }
 
+func TestSqliteSpecialCharacterComponentName(t *testing.T) {
+	// Component IDs routinely contain '/' and '-' (e.g. the exporter
+	// "otlp/nginx/ams-a"), which are not valid in a bare SQL identifier. The
+	// table name is derived from the component ID, so it must be quoted or
+	// client creation and CRUD fail with a syntax error.
+	dbPath := filepath.Join(t.TempDir(), "foo.db")
+	se, err := newSqliteTestExtension(dbPath)
+	require.NoError(t, err)
+
+	ctx := t.Context()
+	require.Eventuallyf(t, func() bool {
+		err = se.Start(ctx, componenttest.NewNopHost())
+		return err == nil
+	}, 30*time.Second, 100*time.Millisecond, "timeout waiting for db: %v", err)
+	defer func() {
+		require.NoError(t, se.Shutdown(ctx))
+	}()
+
+	id := component.MustNewIDWithName("otlp", "nginx/ams-a")
+	client, err := se.GetClient(ctx, component.KindExporter, id, "")
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, client.Close(ctx))
+	}()
+
+	require.NoError(t, client.Set(ctx, "k", []byte("v")))
+	got, err := client.Get(ctx, "k")
+	require.NoError(t, err)
+	require.Equal(t, []byte("v"), got)
+	require.NoError(t, client.Delete(ctx, "k"))
+}
+
 func TestExtensionIntegrityWithPostgres(t *testing.T) {
 	if runtime.GOOS == "windows" && os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Skip("Skipping test on Windows GH runners: test requires Docker to be running Linux containers")
